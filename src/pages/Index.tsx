@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Brain, LogOut, Settings } from "lucide-react";
+import { Brain, LogOut, Settings, Cloud, Menu, X } from "lucide-react";
 import FileExplorer from "@/components/FileExplorer";
-import SearchBar from "@/components/SearchBar";
+import AdvancedSearch from "@/components/AdvancedSearch";
 import ChatInterface from "@/components/ChatInterface";
 import FileViewer from "@/components/FileViewer";
+import CloudSyncDialog from "@/components/CloudSyncDialog";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -24,6 +27,8 @@ const Index = () => {
   const [selectedFile, setSelectedFile] = useState<FileNode | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showCloudSync, setShowCloudSync] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("synapse_auth");
@@ -32,16 +37,18 @@ const Index = () => {
     }
   }, [navigate]);
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
+  const handleSearch = (filters: any) => {
+    setSearchQuery(JSON.stringify(filters));
     setShowChat(true);
     setSelectedFile(null);
+    setMobileMenuOpen(false);
   };
 
   const handleFileSelect = (file: FileNode) => {
     if (file.type === "file") {
       setSelectedFile(file);
       setShowChat(false);
+      setMobileMenuOpen(false);
     }
   };
 
@@ -53,16 +60,28 @@ const Index = () => {
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Top Toolbar */}
-      <div className="h-14 border-b border-toolbar-border bg-toolbar-background flex items-center justify-between px-4">
+      <div className="h-14 border-b border-toolbar-border bg-toolbar-background flex items-center justify-between px-4 gap-3">
+        {/* Mobile Menu Toggle */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="lg:hidden">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-64">
+            <FileExplorer onFileSelect={handleFileSelect} />
+          </SheetContent>
+        </Sheet>
+
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-ai-secondary flex items-center justify-center">
             <Brain className="h-5 w-5 text-white" />
           </div>
-          <h1 className="text-lg font-semibold">Project Synapse</h1>
+          <h1 className="text-lg font-semibold hidden sm:block">Project Synapse</h1>
         </div>
 
-        <div className="flex-1 flex justify-center px-8">
-          <SearchBar onSearch={handleSearch} />
+        <div className="hidden md:flex flex-1 justify-center px-4 max-w-3xl">
+          <AdvancedSearch onSearch={handleSearch} />
         </div>
 
         <DropdownMenu>
@@ -72,6 +91,11 @@ const Index = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setShowCloudSync(true)}>
+              <Cloud className="h-4 w-4 mr-2" />
+              Cloud Sync
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
@@ -80,10 +104,15 @@ const Index = () => {
         </DropdownMenu>
       </div>
 
+      {/* Mobile Search */}
+      <div className="md:hidden px-4 py-3 border-b border-toolbar-border bg-toolbar-background">
+        <AdvancedSearch onSearch={handleSearch} />
+      </div>
+
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* File Explorer Sidebar */}
-        <div className="w-64 flex-shrink-0">
+        {/* File Explorer Sidebar - Desktop */}
+        <div className="w-64 flex-shrink-0 hidden lg:block">
           <FileExplorer onFileSelect={handleFileSelect} />
         </div>
 
@@ -114,9 +143,11 @@ const Index = () => {
                 </div>
               </div>
             </div>
-          )}
+        )}
         </div>
       </div>
+
+      <CloudSyncDialog open={showCloudSync} onOpenChange={setShowCloudSync} />
     </div>
   );
 };
